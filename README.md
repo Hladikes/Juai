@@ -3,8 +3,8 @@
 
 ## Installation
 Put this CDN link into the head of your website
-```
-http://cdn.hldks.net/js/juai.min.js
+```html
+<script src="http://cdn.hldks.net/js/juai.min.js"></script>
 ```
 ## Getting started
 **HTML**
