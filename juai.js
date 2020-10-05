@@ -57,6 +57,9 @@ function Juai(el, model) {
             default: c.innerHTML,
             defaultDisplay: element.style.display
           })
+          attrsAsEntries.forEach(a => {
+            if (a[0].includes(':')) c.removeAttribute(a[0])
+          })
         }
       } else if (c.nodeType === 3 && c.data.includes('{{') && c.data.includes('}}')) {
         textNodes.push({
@@ -75,7 +78,7 @@ function Juai(el, model) {
 
     function addEventTrigger(el, eventName, eventTriggerCode, cb) {
       el.addEventListener(eventName, (event) => {
-        cb(event)
+        if (cb) cb(event)
         if (instance[eventTriggerCode]) {
           instance[eventTriggerCode](event)
         } else {
