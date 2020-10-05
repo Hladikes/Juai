@@ -71,8 +71,11 @@ function Juai(el, model) {
   }
 
   function initializeReactiveDOM(reactiveElements, reactiveTextNodes, context) {
-    function addEventTrigger(el, eventName, eventTriggerCode) {
+    let bounds = {}
+
+    function addEventTrigger(el, eventName, eventTriggerCode, cb) {
       el.addEventListener(eventName, (event) => {
+        cb(event)
         if (instance[eventTriggerCode]) {
           instance[eventTriggerCode](event)
         } else {
@@ -90,14 +93,36 @@ function Juai(el, model) {
             boundVariable = dashToCamel(boundVariable)
           }
 
+          bounds[boundVariable] = bounds[boundVariable] || []
+          bounds[boundVariable].push(rel.element)
+
           if (rel.element.type === 'checkbox') {
             rel.element.checked = eval(`with(context){${boundVariable}}`)
-            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.checked`)
+            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.checked`, (event) => {
+              bounds[boundVariable].forEach(boundEl => {
+                if (rel !== boundEl) {
+                  boundEl.checked = event.target.checked
+                }
+              })
+            })
           } else if (rel.element.type === 'radio') {
-            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`)
+            rel.element.checked = rel.element.value === eval(`with(context){${boundVariable}}`)
+            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`, (event) => {
+              bounds[boundVariable].forEach(boundEl => {
+                if (rel !== boundEl) {
+                  boundEl.checked = event.target.value === boundEl.value
+                }
+              })
+            })
           } else {
             rel.element.value = eval(`with(context){${boundVariable}}`)
-            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`)
+            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`, (event) => {
+              bounds[boundVariable].forEach(boundEl => {
+                if (rel !== boundEl) {
+                  boundEl.value = event.target.value
+                }
+              })
+            })
           }
         }
 
