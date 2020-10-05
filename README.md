@@ -61,12 +61,6 @@ class App {
   mySuperSecretPassword = ''
 }
 ```
-### **Keep in mind that the current two-way binding is limited. For example**
-```html
-<input type="checkbox" bind:checked>
-<input type="checkbox" bind:checked>
-```
-### Changing value of one checkbox will not be reflected on other checkbox which is bound to same state
 ## Dynamics
 Let's say that you want to change attribute of some element dynamically (based on some state for example). To achieve that, you have to add ```dynamic:``` keyword infront of the attribute. When added, the value of attribute will be evaluated as JavaScript expression within your App context
 ```html
@@ -203,4 +197,5 @@ The `is:visible` and `is:hidden` are basically same things, the only difference 
 # Future
 - Add some kind of `v-for` or `ng-for` equivalent
 - Add component support
+- ~~Make two-way binding work properly~~
 - ¯\\_(ツ)_/¯
