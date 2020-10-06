@@ -198,5 +198,5 @@ The `is:visible` and `is:hidden` are basically same things, the only difference 
 - Add some kind of `v-for` or `ng-for` equivalent
 - Add component support
 - ~~Make two-way binding work properly~~
-- Array aren't reactive :( gonna fix ASAP
+- ~~Array aren't reactive :( gonna fix ASAP~~
 - ¯\\_(ツ)_/¯

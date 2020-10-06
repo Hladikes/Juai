@@ -31,7 +31,7 @@ function Juai(el, model) {
       })
 
       for (let property in proxy) {
-        if (typeof obj[property] === 'object' && !obj[property].push) {
+        if (typeof obj[property] === 'object') {
           obj[property] = proxifyObject(obj[property])
         }
       }
