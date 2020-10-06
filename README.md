@@ -1,6 +1,6 @@
 # Juai 
 ## Another useless javascript frontend framework
-### Demo on [http://juai.hldks.net]()
+### Demo on [http://juai.hldks.net](http://juai.hldks.net)
 
 ## Installation
 Put this CDN link into the head of your website
