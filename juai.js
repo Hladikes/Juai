@@ -1,4 +1,8 @@
 function Juai(el, model) {
+  function evaluateWithContext(expression, context) {
+    return eval(`with(context){${expression}}`)
+  }
+
   function getAttributes(el) {
     if (el.attributes.length <= 0) return {}
     let attributes = {}
@@ -23,8 +27,9 @@ function Juai(el, model) {
           return Reflect.get(...arguments)
         },
   
-        set() {
-          Reflect.set(...arguments)
+        set(obj, target, value) {
+          if (typeof obj[target] === 'number') value = +value
+          obj[target] = value
           cb()
           return true
         }
@@ -81,8 +86,8 @@ function Juai(el, model) {
         if (cb) cb(event)
         if (instance[eventTriggerCode]) {
           instance[eventTriggerCode](event)
-        } else {
-          eval(`with(context){${eventTriggerCode}}`)
+        } else {          
+          evaluateWithContext(eventTriggerCode, context)
         }
       })
     }
@@ -99,14 +104,14 @@ function Juai(el, model) {
           bounds[boundVariable] = bounds[boundVariable] || []
           bounds[boundVariable].push(rel.element)
 
-          if (rel.element.type === 'checkbox') {
-            rel.element.checked = eval(`with(context){${boundVariable}}`)
+          if (rel.element.type === 'checkbox') {            
+            rel.element.checked = evaluateWithContext(boundVariable, context)
             addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.checked`)
-          } else if (rel.element.type === 'radio') {
-            rel.element.checked = rel.element.value === eval(`with(context){${boundVariable}}`)
+          } else if (rel.element.type === 'radio') {            
+            rel.element.checked = rel.element.value === evaluateWithContext(boundVariable, context)
             addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`)
-          } else {
-            rel.element.value = eval(`with(context){${boundVariable}}`)
+          } else {            
+            rel.element.value = evaluateWithContext(boundVariable, context)
             addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`)
           }
         }
@@ -138,7 +143,7 @@ function Juai(el, model) {
   function rerenderDOM(reactiveElements, reactiveTextNodes, context) {
     reactiveTextNodes.forEach(rtn => {
       rtn.node.data = rtn.default.replace(/\{\{(.+?)\}\}/g, (match) => {
-        return eval(`with(context){${match}}`)
+        return evaluateWithContext(match, context)
       })
     })
 
@@ -146,7 +151,7 @@ function Juai(el, model) {
       rel.attributes.forEach(attr => {
         if (attr[0].startsWith('class:')) {
           let className = attr[0].replace('class:', '')
-          let conditionResult = eval(`with(context){${attr[1]}}`)
+          let conditionResult = evaluateWithContext(attr[1], context)
 
           if (conditionResult) {
             rel.element.classList.add(className)
@@ -157,7 +162,7 @@ function Juai(el, model) {
 
         if (attr[0].startsWith('is:')) {
           let state = attr[0].replace('is:', '')
-          let conditionResult = eval(`with(context){${attr[1]}}`)
+          let conditionResult = evaluateWithContext(attr[1], context)
 
           if (state === 'visible') {
             if (conditionResult) {
@@ -170,6 +175,18 @@ function Juai(el, model) {
               rel.element.style.display = 'none'
             } else {
               rel.element.style.display = rel.defaultDisplay
+            }
+          } else if (state === 'disabled') {
+            if (conditionResult) {
+              rel.element.disabled = true
+            } else {
+              rel.element.removeAttribute('disabled')
+            }
+          } else if (state === 'enabled') {
+            if (conditionResult) {
+              rel.element.removeAttribute('disabled')
+            } else {
+              rel.element.disabled = true
             }
           }
         }
@@ -185,7 +202,7 @@ function Juai(el, model) {
             if (attr[1] === '') {
               rel.element.style[styleProperty] = styleValue
             } else {
-              conditionResult = eval(`with(context){${attr[1]}}`)
+              conditionResult = evaluateWithContext(attr[1], context)
               if (conditionResult) {
                 rel.element.style[styleProperty] = styleValue
               }
@@ -193,9 +210,9 @@ function Juai(el, model) {
           } else {
             let styleProperty = style
             if (attr[1].includes('${') && attr[1].includes('}')) {
-              conditionResult = eval(`with(context){\`${attr[1]}\`}`)
+              conditionResult = evaluateWithContext(`\`${attr[1]}\``, context)
             } else {
-              conditionResult = eval(`with(context){${attr[1]}}`)
+              conditionResult = evaluateWithContext(attr[1], context)
             }
             rel.element.style[styleProperty] = conditionResult
           }
@@ -203,7 +220,7 @@ function Juai(el, model) {
 
         if (attr[0].startsWith('dynamic:')) {
           let attrName = attr[0].replace('dynamic:', '')
-          let conditionResult = eval(`with(context){${attr[1]}}`)
+          let conditionResult = evaluateWithContext(attr[1], context)
           rel.element.setAttribute(attrName, conditionResult)
         }
       })
