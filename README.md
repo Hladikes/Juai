@@ -1,5 +1,6 @@
 # Juai 
-## Another javascript frontend framework
+## Another useless javascript frontend framework
+### Demo on [http://juai.hldks.net]()
 
 ## Installation
 Put this CDN link into the head of your website
@@ -192,7 +193,7 @@ class App {
   password = ''
 }
 ```
-The `is:visible` and `is:hidden` are basically same things, the only difference is that the expression in `is:hidden` will be negated
+The `is:visible` and `is:hidden` are basically same things, the only difference is that the expression in `is:hidden` will be negated. Same applies for directives `is:enabled` and `is:disabled`.
 
 # Future
 - Add some kind of `v-for` or `ng-for` equivalent
