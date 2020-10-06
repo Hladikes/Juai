@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juai demo</title>
+    <script src="juai.js"></script>
+  </head>
+
+  <body>
+    <div id="app">
+      <div>
+        <h3>Todo list</h3>
+
+        <pre>{{ JSON.stringify(arr,null,2) }}</pre>
+        <p>{{ txt }}</p>
+        <input type="text" bind:txt>
+        <button on:click="add">Add</button>
+      </div>
+        
+      <hr>
+
+      <div>
+        <h3>Conditional styling</h3>
+
+        <span 
+          style:color="check ? 'green' : 'red'"
+          style:background="check ? 'yellow' : 'cyan'">{{ check }}</span>
+
+        <div>
+          <input type="checkbox" bind:check>
+          <input type="checkbox" bind:check>
+          <input type="checkbox" bind:check>
+        </div>
+      </div>
+
+      <hr>
+
+      <div>
+        <h3>More on reactivity</h3>
+
+        <p style:color="pickedColor">Pick a color of your choice</p>
+        <input type="radio" value="red" bind:picked-color>Red
+        <input type="radio" value="green" bind:picked-color>Green
+        <input type="radio" value="blue" bind:picked-color>Blue
+        <br>
+        <input type="radio" value="red" bind:picked-color>Red
+        <input type="radio" value="green" bind:picked-color>Green
+        <input type="radio" value="blue" bind:picked-color>Blue
+      </div>
+
+      <hr>
+
+      <div>
+        <h3>Even more on reactivity</h3>
+
+        <p>So, the vehicle of your choice is {{ vehicle }} ? Interesting ...</p>
+        <select bind:vehicle>
+          <option value="nothing">Nothing</option>
+          <option value="car">Car</option>
+          <option value="train">Train</option>
+          <option value="bicycle">Bicycle</option>
+        </select>
+        <select bind:vehicle>
+          <option value="nothing">Nothing</option>
+          <option value="car">Car</option>
+          <option value="train">Train</option>
+          <option value="bicycle">Bicycle</option>
+        </select>
+      </div>
+
+      <hr>
+
+      <div>
+        <h3>Some events</h3>
+
+        <span 
+          on:mouseover="isHovering = true" 
+          on:mouseleave="isHovering = false"
+          style="width: 100px; height: 100px; display: inline-block"
+          style:background-color="isHovering ? 'blue' : 'yellow'"
+          style:color="isHovering ? 'white' : 'black'">Mouseover me</span>
+
+        <span 
+          on:mousedown="isClicking = true" 
+          on:mouseup="isClicking = false"
+          style="width: 100px; height: 100px; display: inline-block"
+          style:background-color="isClicking ? 'blue' : 'yellow'"
+          style:color="isClicking ? 'white' : 'black'">Click me</span>
+
+        <span 
+          on:touchstart="isTouching = true" 
+          on:touchend="isTouching = false"
+          style="width: 100px; height: 100px; display: inline-block"
+          style:background-color="isTouching ? 'blue' : 'yellow'"
+          style:color="isTouching ? 'white' : 'black'">Touch me</span>
+      </div>
+
+      <hr>
+
+      <div>
+        <h3>Hey psst ...</h3>
+        <p>Look into devtools to see how clean your elements are 😎</p>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    class App {
+      arr = []
+      txt = ''
+      check = false
+      pickedColor = 'red'
+      vehicle = 'nothing'
+      isHovering = false
+      isClicking = false
+      isTouching = false
+
+      add() {
+        this.arr.push(this.txt)
+        this.txt = ''
+      }
+    }
+
+    Juai('#app', App)
+  </script>
+</html>
