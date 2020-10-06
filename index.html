@@ -5,22 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Juai demo</title>
     <script src="juai.js"></script>
+    <style>
+      * {
+        font-family: sans-serif;
+        color: rgba(0, 0, 0, 0.7);
+        box-sizing: border-box;
+        outline: 0;
+      }
+
+      pre {
+        font-family: Consolas, monospace;
+      }
+
+      html {
+        background-color: #243137;
+      }
+
+      h1, h2, h3, h4 {
+        font-size: 150%;
+        margin-top: 12px;
+      }
+
+      hr {
+        margin: 24px 0;
+        border: 0;
+        height: 1px;
+        background-color: lightgray;
+      }
+
+      section {
+        margin: 0 8px;
+      }
+
+      #app {
+        max-width: 800px;
+        margin: 0 auto;
+        border: 1px solid lightgray;
+        background-color: white;
+        padding: 0 16px;
+      }
+    </style>
   </head>
 
   <body>
     <div id="app">
-      <div>
+      <section>
         <h3>Todo list</h3>
 
         <pre>{{ JSON.stringify(arr,null,2) }}</pre>
         <p>{{ txt }}</p>
         <input type="text" bind:txt>
-        <button on:click="add">Add</button>
-      </div>
+        <button on:click="add" is:enabled="txt.length > 2">Add</button>
+      </section>
         
       <hr>
 
-      <div>
+      <section>
         <h3>Conditional styling</h3>
 
         <span 
@@ -32,11 +72,11 @@
           <input type="checkbox" bind:check>
           <input type="checkbox" bind:check>
         </div>
-      </div>
+      </section>
 
       <hr>
 
-      <div>
+      <section>
         <h3>More on reactivity</h3>
 
         <p style:color="pickedColor">Pick a color of your choice</p>
@@ -47,11 +87,11 @@
         <input type="radio" value="red" bind:picked-color>Red
         <input type="radio" value="green" bind:picked-color>Green
         <input type="radio" value="blue" bind:picked-color>Blue
-      </div>
+      </section>
 
       <hr>
 
-      <div>
+      <section>
         <h3>Even more on reactivity</h3>
 
         <p>So, the vehicle of your choice is {{ vehicle }} ? Interesting ...</p>
@@ -67,41 +107,64 @@
           <option value="train">Train</option>
           <option value="bicycle">Bicycle</option>
         </select>
-      </div>
+      </section>
 
       <hr>
 
-      <div>
+      <section>
+        <h3>Little fun here</h3>
+        <div style="width: 300px; position: relative; height: 300px; border: 1px solid gray">
+          <div
+            style:width="${width}px"
+            style:height="${height}px"
+            style:background="color">
+            <div style="color: white; padding: 8px">{{ height }}x{{ width }}</div>
+          </div>
+          <span
+            style:color="(height == 300 && width == 300) ? 'white' : 'black'" 
+            style="position: absolute; bottom: 8px; right: 8px">
+            {{ (height == 300 && width == 300) ? 'Thanks :)' : 'Cover me O.o' }}
+          </span>
+        </div>
+        <br>
+        <input type="range" bind:width min="100" max="300">
+        <input type="range" bind:height min="100" max="300">
+        <input type="color" bind:color>
+      </section>
+
+      <hr>
+
+      <section>
         <h3>Some events</h3>
 
         <span 
           on:mouseover="isHovering = true" 
           on:mouseleave="isHovering = false"
-          style="width: 100px; height: 100px; display: inline-block"
+          style="width: 125px; height: 125px; display: inline-block"
           style:background-color="isHovering ? 'blue' : 'yellow'"
           style:color="isHovering ? 'white' : 'black'">Mouseover me</span>
 
         <span 
           on:mousedown="isClicking = true" 
           on:mouseup="isClicking = false"
-          style="width: 100px; height: 100px; display: inline-block"
+          style="width: 125px; height: 125px; display: inline-block"
           style:background-color="isClicking ? 'blue' : 'yellow'"
           style:color="isClicking ? 'white' : 'black'">Click me</span>
 
         <span 
           on:touchstart="isTouching = true" 
           on:touchend="isTouching = false"
-          style="width: 100px; height: 100px; display: inline-block"
+          style="width: 125px; height: 125px; display: inline-block"
           style:background-color="isTouching ? 'blue' : 'yellow'"
           style:color="isTouching ? 'white' : 'black'">Touch me</span>
-      </div>
+      </section>
 
       <hr>
 
-      <div>
+      <section>
         <h3>Hey psst ...</h3>
         <p>Look into devtools to see how clean your elements are 😎</p>
-      </div>
+      </section>
     </div>
   </body>
 
@@ -115,6 +178,9 @@
       isHovering = false
       isClicking = false
       isTouching = false
+      width = 100
+      height = 100
+      color = '#000000'
 
       add() {
         this.arr.push(this.txt)
