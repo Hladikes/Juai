@@ -101,37 +101,35 @@ function Juai(el, model) {
 
           if (rel.element.type === 'checkbox') {
             rel.element.checked = eval(`with(context){${boundVariable}}`)
-            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.checked`, (event) => {
-              bounds[boundVariable].forEach(boundEl => {
-                if (rel !== boundEl) {
-                  boundEl.checked = event.target.checked
-                }
-              })
-            })
+            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.checked`)
           } else if (rel.element.type === 'radio') {
             rel.element.checked = rel.element.value === eval(`with(context){${boundVariable}}`)
-            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`, (event) => {
-              bounds[boundVariable].forEach(boundEl => {
-                if (rel !== boundEl) {
-                  boundEl.checked = event.target.value === boundEl.value
-                }
-              })
-            })
+            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`)
           } else {
             rel.element.value = eval(`with(context){${boundVariable}}`)
-            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`, (event) => {
-              bounds[boundVariable].forEach(boundEl => {
-                if (rel !== boundEl) {
-                  boundEl.value = event.target.value
-                }
-              })
-            })
+            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`)
           }
         }
 
         if (relAttr[0].startsWith('on:')) {
           let eventName = relAttr[0].replace('on:', '')
           addEventTrigger(rel.element, eventName, relAttr[1])
+        }
+      })
+    })
+
+    return bounds
+  }
+
+  function updateBoundElements(bounds, context) {
+    Object.entries(bounds).forEach(bound => {
+      bound[1].forEach(boundElement => {
+        if (boundElement.type === 'checkbox') {
+          boundElement.checked = context[bound[0]]
+        } else if (boundElement.type === 'radio') {
+          boundElement.checked = boundElement.value === context[bound[0]]
+        } else {
+          boundElement.value = context[bound[0]]
         }
       })
     })
@@ -214,10 +212,13 @@ function Juai(el, model) {
 
   const rootElement = document.querySelectorAll(el)[0]
   const reactive = getAllReactiveElements(rootElement)
+  let bounds = {}
+
   const instance = classToObject(model, () => {
+    updateBoundElements(bounds, instance)
     rerenderDOM(reactive.elements, reactive.textNodes, instance)
   })
-
+  
+  bounds = initializeReactiveDOM(reactive.elements, reactive.textNodes, instance)
   rerenderDOM(reactive.elements, reactive.textNodes, instance)
-  initializeReactiveDOM(reactive.elements, reactive.textNodes, instance)
 }
