@@ -1,4 +1,97 @@
 function Juai(el, model) {
+  function directiveModule() {
+    // all directives used within an app instance
+    let directives = []
+  
+    return {
+      // remove later
+      directives,
+  
+      registerDirective(directive, cb) {
+        // Avoid any collision with existing attributes
+        if (!directive.includes(':')) throw 'ERR:1'
+  
+        // REGEX patterns for both directive fragment types
+        const PARAM_REGEX = /^\{[a-zA-Z0-9]*\}$/
+        const KEYWORD_REGEX = /^[a-zA-Z0-9]*$/
+  
+        // Check if every fragment of the directive matches speciffic model
+        const directiveSplit = directive.split(':')
+        let matches = true
+        for (let ds of directiveSplit) {
+          matches = matches && (
+            PARAM_REGEX.test(ds) ||
+            KEYWORD_REGEX.test(ds)
+          )
+        }
+  
+        if (!matches) throw 'ERR:2'
+  
+        // Remove template parameters from the curly braces for the comparison
+        // Save the parameters names
+        let params = []
+  
+        let directiveTemplate = directive.replace(/\{[a-zA-Z0-9]*\}/g, (g) => {
+          params.push(g.replace(/\{|\}/g, ''))
+          return '{}'
+        })
+  
+        // Check if such a directive already exist
+        let existIndex = directives.findIndex(d => {
+          return d.template === directiveTemplate
+        })
+  
+        if (existIndex !== -1) throw 'ERR:3'
+  
+        let directiveObj = {
+          template: directiveTemplate,
+          parametricTemplate: directive,
+          fragments: directiveSplit,
+          length: directiveSplit.length,
+          params,
+          cb,
+          match(rawDirective) {
+            // console.time('match')
+            let rawDirectiveSplit = rawDirective.split(':')
+            let lengthCheck = rawDirectiveSplit.length === this.length
+  
+            if (!lengthCheck) return false
+  
+            let paramIndex = 0
+            let output = {}
+            for (let n = 0; n < this.length; n++) {
+              if (PARAM_REGEX.test(this.fragments[n])) {
+                if (!rawDirectiveSplit[n]) return false
+  
+                output[this.params[paramIndex]] = rawDirectiveSplit[n]
+                paramIndex++
+              } else if (this.fragments[n] !== rawDirectiveSplit[n]) {
+                return false
+              }
+            }
+            
+            // console.timeEnd('match')
+            return output
+          }
+        }
+        
+        directives.push(directiveObj)
+      },
+  
+      // Add element parameter for successful match
+      encounterDirective(rawDirective, val, el) {
+        for (let d of directives) {
+          let match = d.match(rawDirective)
+          if (match) {
+            // console.log('MATCHING', rawDirective, val, el)
+            match.$value = val
+            d.cb(match, el)
+          }
+        }
+      }
+    }
+  }
+
   function evaluateWithContext(expression, context) {
     return eval(`with(context){${expression}}`)
   }
@@ -78,7 +171,7 @@ function Juai(el, model) {
     return { elements, textNodes }
   }
 
-  function initializeReactiveDOM(reactiveElements, reactiveTextNodes, context) {
+  function initializeReactiveDOM(reactiveElements, reactiveTextNodes, context, directivesModule) {
     let bounds = {}
 
     function addEventTrigger(el, eventName, eventTriggerCode, cb) {
@@ -92,34 +185,37 @@ function Juai(el, model) {
       })
     }
 
+    directivesModule.registerDirective('bind:{boundVariable}', (out, rel) => {
+      let boundVariable = out.boundVariable
+
+      if (boundVariable.includes('-')) {
+        boundVariable = dashToCamel(boundVariable)
+      }
+
+      bounds[boundVariable] = bounds[boundVariable] || []
+      bounds[boundVariable].push(rel.element)
+
+      if (rel.element.type === 'checkbox') {            
+        rel.element.checked = evaluateWithContext(boundVariable, context)
+        addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.checked`)
+      } else if (rel.element.type === 'radio') {            
+        rel.element.checked = rel.element.value === evaluateWithContext(boundVariable, context)
+        addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`)
+      } else {            
+        rel.element.value = evaluateWithContext(boundVariable, context)
+        addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`)
+      }
+    })
+
+    directivesModule.registerDirective('on:{event}', (obj, rel) => {
+      let eventName = obj.event
+      addEventTrigger(rel.element, eventName, obj.$value)
+    })
+
+
     reactiveElements.forEach(rel => {
       rel.attributes.forEach(relAttr => {
-        if (relAttr[0].startsWith('bind:')) {
-          let boundVariable = relAttr[0].replace('bind:', '')
-
-          if (boundVariable.includes('-')) {
-            boundVariable = dashToCamel(boundVariable)
-          }
-
-          bounds[boundVariable] = bounds[boundVariable] || []
-          bounds[boundVariable].push(rel.element)
-
-          if (rel.element.type === 'checkbox') {            
-            rel.element.checked = evaluateWithContext(boundVariable, context)
-            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.checked`)
-          } else if (rel.element.type === 'radio') {            
-            rel.element.checked = rel.element.value === evaluateWithContext(boundVariable, context)
-            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`)
-          } else {            
-            rel.element.value = evaluateWithContext(boundVariable, context)
-            addEventTrigger(rel.element, 'input', `${boundVariable} = event.target.value`)
-          }
-        }
-
-        if (relAttr[0].startsWith('on:')) {
-          let eventName = relAttr[0].replace('on:', '')
-          addEventTrigger(rel.element, eventName, relAttr[1])
-        }
+        directivesModule.encounterDirective(relAttr[0], relAttr[1], rel)
       })
     })
 
@@ -140,7 +236,84 @@ function Juai(el, model) {
     })
   }
   
-  function rerenderDOM(reactiveElements, reactiveTextNodes, context) {
+  function registerBuiltinDirectives(directivesModule, context) {
+    directivesModule.registerDirective('class:{className}', (obj, rel) => {
+      let className = obj.className
+      let conditionResult = evaluateWithContext(obj.$value, context)
+
+      if (conditionResult) {
+        rel.element.classList.add(className)
+      } else {
+        rel.element.classList.remove(className)
+      }
+    })
+
+    directivesModule.registerDirective('is:{state}', (obj, rel) => {
+      let state = obj.state
+      let conditionResult = evaluateWithContext(obj.$value, context)
+
+      if (state === 'visible') {
+        if (conditionResult) {
+          rel.element.style.display = rel.defaultDisplay
+        } else {
+          rel.element.style.display = 'none'
+        }
+      } else if (state === 'hidden') {
+        if (conditionResult) {
+          rel.element.style.display = 'none'
+        } else {
+          rel.element.style.display = rel.defaultDisplay
+        }
+      } else if (state === 'disabled') {
+        if (conditionResult) {
+          rel.element.disabled = true
+        } else {
+          rel.element.removeAttribute('disabled')
+        }
+      } else if (state === 'enabled') {
+        if (conditionResult) {
+          rel.element.removeAttribute('disabled')
+        } else {
+          rel.element.disabled = true
+        }
+      }
+    })
+    
+    directivesModule.registerDirective('style:{style}', (obj, rel) => {
+      let style = obj.style
+      let conditionResult = null
+
+      if (style.includes(':')) {
+        style = style.split(':')
+        let styleProperty = style[0]
+        let styleValue = style[1].split('.').join(' ')
+        if (obj.$value === '') {
+          rel.element.style[styleProperty] = styleValue
+        } else {
+          conditionResult = evaluateWithContext(obj.$value, context)
+          if (conditionResult) {
+            rel.element.style[styleProperty] = styleValue
+          }
+        }
+      } else {
+        let styleProperty = style
+        if (obj.$value.includes('${') && obj.$value.includes('}')) {
+          conditionResult = evaluateWithContext(`\`${obj.$value}\``, context)
+        } else {
+          conditionResult = evaluateWithContext(obj.$value, context)
+        }
+        rel.element.style[styleProperty] = conditionResult
+      }
+    })
+
+    directivesModule.registerDirective('dynamic:{attrName}', (obj, rel) => {
+      let attrName = obj.attrName
+      let conditionResult = evaluateWithContext(obj.$value, context)
+      rel.element.setAttribute(attrName, conditionResult)
+    })
+  }
+
+  function rerenderDOM(reactiveElements, reactiveTextNodes, context, directivesModule) {
     reactiveTextNodes.forEach(rtn => {
       rtn.node.data = rtn.default.replace(/\{\{(.+?)\}\}/g, (match) => {
         return evaluateWithContext(match, context)
@@ -149,93 +322,32 @@ function Juai(el, model) {
 
     reactiveElements.forEach(rel => {
       rel.attributes.forEach(attr => {
-        if (attr[0].startsWith('class:')) {
-          let className = attr[0].replace('class:', '')
-          let conditionResult = evaluateWithContext(attr[1], context)
-
-          if (conditionResult) {
-            rel.element.classList.add(className)
-          } else {
-            rel.element.classList.remove(className)
-          }
-        }
-
-        if (attr[0].startsWith('is:')) {
-          let state = attr[0].replace('is:', '')
-          let conditionResult = evaluateWithContext(attr[1], context)
-
-          if (state === 'visible') {
-            if (conditionResult) {
-              rel.element.style.display = rel.defaultDisplay
-            } else {
-              rel.element.style.display = 'none'
-            }
-          } else if (state === 'hidden') {
-            if (conditionResult) {
-              rel.element.style.display = 'none'
-            } else {
-              rel.element.style.display = rel.defaultDisplay
-            }
-          } else if (state === 'disabled') {
-            if (conditionResult) {
-              rel.element.disabled = true
-            } else {
-              rel.element.removeAttribute('disabled')
-            }
-          } else if (state === 'enabled') {
-            if (conditionResult) {
-              rel.element.removeAttribute('disabled')
-            } else {
-              rel.element.disabled = true
-            }
-          }
-        }
-
-        if (attr[0].startsWith('style:')) {
-          let style = attr[0].replace('style:', '')
-          let conditionResult = null
-
-          if (style.includes(':')) {
-            style = style.split(':')
-            let styleProperty = style[0]
-            let styleValue = style[1].split('.').join(' ')
-            if (attr[1] === '') {
-              rel.element.style[styleProperty] = styleValue
-            } else {
-              conditionResult = evaluateWithContext(attr[1], context)
-              if (conditionResult) {
-                rel.element.style[styleProperty] = styleValue
-              }
-            }
-          } else {
-            let styleProperty = style
-            if (attr[1].includes('${') && attr[1].includes('}')) {
-              conditionResult = evaluateWithContext(`\`${attr[1]}\``, context)
-            } else {
-              conditionResult = evaluateWithContext(attr[1], context)
-            }
-            rel.element.style[styleProperty] = conditionResult
-          }
-        }
-
-        if (attr[0].startsWith('dynamic:')) {
-          let attrName = attr[0].replace('dynamic:', '')
-          let conditionResult = evaluateWithContext(attr[1], context)
-          rel.element.setAttribute(attrName, conditionResult)
-        }
+        directivesModule.encounterDirective(attr[0], attr[1], rel)
       })
     })
   }
 
   const rootElement = document.querySelectorAll(el)[0]
   const reactive = getAllReactiveElements(rootElement)
+  const directivesModule = directiveModule()
+  const coreDirectivesModule = directiveModule()
   let bounds = {}
 
   const instance = classToObject(model, () => {
     updateBoundElements(bounds, instance)
-    rerenderDOM(reactive.elements, reactive.textNodes, instance)
+    rerenderDOM(reactive.elements, reactive.textNodes, instance, directivesModule)
   })
   
-  bounds = initializeReactiveDOM(reactive.elements, reactive.textNodes, instance)
-  rerenderDOM(reactive.elements, reactive.textNodes, instance)
+  bounds = initializeReactiveDOM(reactive.elements, reactive.textNodes, instance, coreDirectivesModule)
+  registerBuiltinDirectives(directivesModule, instance)
+  rerenderDOM(reactive.elements, reactive.textNodes, instance, directivesModule)
+
+  function registerDirective(t, s) {
+    directivesModule.registerDirective(t, s)
+    rerenderDOM(reactive.elements, reactive.textNodes, instance, directivesModule)
+  }
+
+  return {
+    directive: registerDirective
+  }
 }
